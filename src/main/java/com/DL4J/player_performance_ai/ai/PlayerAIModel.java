@@ -11,26 +11,20 @@ import org.nd4j.linalg.dataset.api.iterator.*;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.learning.config.Adam;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
+import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+@Component
 public class PlayerAIModel {
 
     private final MultiLayerNetwork model;
 
-    public PlayerAIModel() {
-        model = new MultiLayerNetwork(new NeuralNetConfiguration.Builder()
-                .seed(42)
-                .updater(new Adam(0.001))
-                .list()
-                .layer(0, new DenseLayer.Builder().nIn(5).nOut(64).activation(Activation.RELU).build())
-                .layer(1, new DenseLayer.Builder().nIn(64).nOut(32).activation(Activation.RELU).build())
-                .layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.XENT)
-                        .activation(Activation.SIGMOID).nIn(32).nOut(1).build())
-                .build());
-        model.init();
+    public PlayerAIModel() throws IOException {
+        // Load the saved model from the file
+        model = MultiLayerNetwork.load(new File("src/main/resources/player_model.zip"), true);
     }
 
     public void train(List<DataSet> data) {
