@@ -1,4 +1,4 @@
-# AI Model Building with DL4J
+# **AI Model Building with DL4J**
 
 This project is a **Java Spring Boot application** that uses **DL4J (Deeplearning4j)** to train a neural network for predicting if a player is **suitable or not** for the team. The application supports **CRUD operations** on player performance data stored in a **MySQL** database and retrains the AI model automatically whenever the data changes.
 
@@ -60,7 +60,7 @@ cd ai-model-building-dl4j
    ```sql
    CREATE DATABASE player_ai_db;
    ```
-3. Open the project’s **`src/main/resources/application.properties`** file and configure the database credentials:
+3. Configure the database credentials in **`src/main/resources/application.properties`**:
    ```properties
    spring.datasource.url=jdbc:mysql://localhost:3306/player_ai_db?useSSL=false
    spring.datasource.username=root
@@ -99,100 +99,84 @@ Use **Postman** or another tool to test the API.
 #### **2. Retrieve All Player Data**
 - **GET**: `http://localhost:8080/api/performance`
 
-#### **3. Predict Player Suitability**
-Once the model is trained, you can predict player suitability using the **DL4J model logic**:
+---
+
+## **How the AI Model Works**
+
+The project uses **DL4J** to build a neural network that predicts player suitability based on five performance metrics:  
+**batting average, strike rate, bowling average, economy rate, and fielding stats**.
+
+### **Workflow**
+
+1. **Data Collection**: Player data is collected through the API and saved to **MySQL**.
+2. **Model Training**: When data is added or updated, the **neural network** retrains to incorporate the changes.
+3. **Prediction**: The trained model predicts if a player is **suitable** based on performance metrics.
+4. **Model Storage**: The model is saved as `player_model.zip` and reloaded whenever required.
+
+### **Model Configuration Example**
 ```java
-float[] playerData = {48.0f, 120.0f, 23.0f, 4.1f, 12};
-boolean isSuitable = aiModel.predict(playerData);
-System.out.println("Is the player suitable? " + (isSuitable ? "Yes" : "No"));
+MultiLayerConfiguration config = new NeuralNetConfiguration.Builder()
+    .seed(123)
+    .updater(new Adam(0.001))
+    .list()
+    .layer(0, new DenseLayer.Builder().nIn(5).nOut(64).activation(Activation.RELU).build())
+    .layer(1, new DenseLayer.Builder().nIn(64).nOut(32).activation(Activation.RELU).build())
+    .layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.XENT)
+        .nIn(32).nOut(1)
+        .activation(Activation.SIGMOID)
+        .build())
+    .build();
+
+MultiLayerNetwork model = new MultiLayerNetwork(config);
+model.init();
 ```
 
 ---
 
-## **DeepLearning4J (DL4J) Overview**
+## **Retraining Process**
+1. When a player is **added, updated, or deleted**, the system retrieves the latest data.
+2. The model **re-trains** using the new dataset.
+3. The **new model** replaces the old one by saving it as `player_model.zip`.
 
-**Deeplearning4j (DL4J)** is an open-source, distributed deep learning library for Java and the JVM. It is designed for large-scale production environments and provides flexibility in building neural networks. DL4J is a powerful choice for integrating machine learning models into Java applications, especially for use cases like **predictive modeling**, as demonstrated in this project.
+---
 
-### **Why DL4J for This Project?**
-
-DL4J is well-suited for Java-based enterprise applications like this one due to several key reasons:
-- **Native Java Support**: DL4J runs on the JVM, allowing seamless integration with Java and Spring Boot. This makes it a natural choice for building AI-powered applications in Java.
-- **Distributed Training**: DL4J supports distributed GPU training across multiple machines. Although not utilized in this basic project, it provides scalability for future enhancements if the training data grows.
-- **Integration with Other JVM Libraries**: DL4J works well with Java libraries like **ND4J** (N-dimensional arrays for Java), which provides the numerical computing backbone for matrix operations used in training neural networks.
-- **Flexibility and Customization**: It allows easy customization of neural network architectures to fit various use cases, including classification tasks like predicting player suitability in this project.
-
-### **DL4J in This Project**
-
-In this application, DL4J is used to build and train a neural network to predict the suitability of a player based on their performance metrics (e.g., batting average, bowling average, strike rate, fielding stats). Here's how it fits into the workflow:
-
-1. **Data Collection**: Player performance data is collected via the REST API and stored in a **MySQL** database. The input features (batting average, strike rate, etc.) are pre-processed to be fed into the neural network.
-   
-2. **Model Training**: When a new player is added or updated, the application triggers **automatic model retraining**. The player data is pulled from the database and used to retrain the model. Retraining helps ensure the model is always up-to-date with the latest player statistics.
-   
-3. **Model Architecture**: 
-   - Input Layer: Takes in 5 features (e.g., batting average, strike rate).
-   - Hidden Layers: The model has two hidden layers with 64 and 32 neurons, respectively, using **ReLU (Rectified Linear Unit)** activation functions, which allow the model to capture non-linear patterns in the data.
-   - Output Layer: The output layer consists of one neuron with a **sigmoid activation** function, used to perform binary classification (predicting whether the player is suitable for the team or not).
-   
-4. **Optimization**: The model uses the **Adam optimizer**, a variant of gradient descent that adjusts the learning rate dynamically, making it well-suited for deep learning applications.
-   
-5. **Loss Function**: A **binary cross-entropy** loss function is used, which is appropriate for binary classification problems where the output is either 0 or 1.
-
-6. **Prediction**: Once trained, the model can be used to make predictions about a player's suitability based on their performance metrics. The prediction function converts the input data into the expected format and passes it through the trained model.
-
-### **Example of Model Training Code**
-
-Here’s an example of how the neural network is configured in DL4J:
+## **Making Predictions**
+You can use the trained model to predict player suitability programmatically:
 
 ```java
-MultiLayerConfiguration config = new NeuralNetConfiguration.Builder()
-    .seed(123) // Random seed for reproducibility
-    .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
-    .updater(new Adam(0.001)) // Adam optimizer
-    .list()
-    .layer(0, new DenseLayer.Builder().nIn(5).nOut(64).activation(Activation.RELU).build()) // Input layer + first hidden layer
-    .layer(1, new DenseLayer.Builder().nIn(64).nOut(32).activation(Activation.RELU).build()) // Second hidden layer
-    .layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.XENT)
-        .nIn(32).nOut(1)
-        .activation(Activation.SIGMOID)
-        .build()) // Output layer
-    .build();
-
-// Model initialization and training
-MultiLayerNetwork model = new MultiLayerNetwork(config);
-model.init();
-model.fit(trainingData); // Train the model with training data
+float[] newPlayer = {50.0f, 120.0f, 25.0f, 4.2f, 14};
+boolean isGoodPlayer = aiModel.predict(newPlayer);
+System.out.println("Is the player suitable? " + (isGoodPlayer ? "Yes" : "No"));
 ```
-
-This code demonstrates how the neural network is built with an **input layer**, **two hidden layers**, and an **output layer** for binary classification.
-
-### **Retraining Trigger**
-
-Whenever new player data is added or updated, the application will:
-1. Retrieve all player data from MySQL.
-2. Preprocess the data and split it into training and testing datasets.
-3. Retrain the DL4J model using the updated data.
-4. Save the retrained model for future predictions.
-
-This ensures the AI model remains accurate and up-to-date with the latest player statistics.
 
 ---
 
 ## **Contributing**
-1. Fork the project.
-2. Create a new branch (`git checkout -b feature-branch`).
-3. Commit your changes (`git commit -am 'Add new feature'`).
-4. Push to the branch (`git push origin feature-branch`).
-5. Open a pull request.
+1. Fork the repository.
+2. Create a new branch:
+   ```bash
+   git checkout -b feature-branch
+   ```
+3. Make your changes and commit them:
+   ```bash
+   git commit -m "Add new feature"
+   ```
+4. Push your changes:
+   ```bash
+   git push origin feature-branch
+   ```
+5. Create a pull request.
 
 ---
 
 ## **License**
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the **LICENSE** file for details.
 
 ---
 
 ## **Contact**
 For questions or support, contact:
-- **Your Name**: [nurajshaminda200@gmail.com](mailto:nurajshaminda200@gmail.com)
-- **GitHub**: [https://github.com/Nuraj250](https://github.com/Nuraj250)
+- **Your Name**: [your.email@example.com](mailto:your.email@example.com)
+- **GitHub**: [https://github.com/yourusername](https://github.com/yourusername)
+
+---
