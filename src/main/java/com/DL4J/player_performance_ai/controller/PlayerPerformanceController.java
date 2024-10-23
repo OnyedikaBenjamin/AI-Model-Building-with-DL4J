@@ -4,6 +4,8 @@ import com.DL4J.player_performance_ai.dto.PlayerPerformanceDto;
 import com.DL4J.player_performance_ai.service.PlayerPerformanceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +29,24 @@ public class PlayerPerformanceController {
         return service.add(dto);
     }
 
+    // Update an existing player performance by ID
+    @PutMapping("/{id}")
+    public ResponseEntity<PlayerPerformanceDto> update(
+            @PathVariable Long id, @RequestBody PlayerPerformanceDto dto) {
+        PlayerPerformanceDto updatedDto = service.update(id, dto);
+        return updatedDto != null ?
+                ResponseEntity.ok(updatedDto) :
+                ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
+    // Delete a player performance by ID
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        boolean isDeleted = service.delete(id);
+        return isDeleted ?
+                ResponseEntity.noContent().build() :
+                ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
     /**
      * Endpoint to predict if a player is suitable based on provided metrics.
      * Example JSON input:
