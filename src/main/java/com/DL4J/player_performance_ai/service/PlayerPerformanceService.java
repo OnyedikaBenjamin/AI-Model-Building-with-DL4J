@@ -4,28 +4,26 @@ import com.DL4J.player_performance_ai.ai.PlayerAIModel;
 import com.DL4J.player_performance_ai.dto.PlayerPerformanceDto;
 import com.DL4J.player_performance_ai.model.PlayerPerformance;
 import com.DL4J.player_performance_ai.repository.PlayerPerformanceRepository;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.deeplearning4j.datasets.iterator.utilty.ListDataSetIterator;
-import org.deeplearning4j.util.ModelSerializer;
-import org.nd4j.linalg.dataset.DataSet;
-import org.nd4j.linalg.factory.Nd4j;
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.stereotype.*;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @Service
-@AllArgsConstructor(onConstructor = @__({@Autowired}))
 @Slf4j
 public class PlayerPerformanceService {
 
     private final PlayerPerformanceRepository repository;
-    private PlayerAIModel playerAIModel;
+    private final PlayerAIModel playerAIModel;
     private static final String MODEL_PATH = "src/main/resources/player_model.zip";
+
+    @Autowired
+    public PlayerPerformanceService(PlayerPerformanceRepository repository,PlayerAIModel playerAIModel) {
+        this.repository = repository;
+        this.playerAIModel = playerAIModel;
+    }
 
     public List<PlayerPerformanceDto> getAll() {
         return repository.findAll().stream()
@@ -35,7 +33,7 @@ public class PlayerPerformanceService {
 
     public PlayerPerformanceDto add(PlayerPerformanceDto dto) {
         PlayerPerformance performance = repository.save(toEntity(dto));
-        trainModel();  // Train the model after adding new data
+        playerAIModel.trainModel();  // Train the model after adding new data
         return toDto(performance);
     }
 
@@ -56,7 +54,7 @@ public class PlayerPerformanceService {
             performance.setFieldingStats(dto.getFieldingStats());
             performance.setLabel(dto.getLabel());
             PlayerPerformance updatedPerformance = repository.save(performance);
-            trainModel();  // Train the model after adding new data
+            playerAIModel.trainModel();  // Train the model after adding new data
             return toDto(updatedPerformance);
         }
         return null;
@@ -70,7 +68,7 @@ public class PlayerPerformanceService {
     public boolean delete(Long id) {
         if (repository.existsById(id)) {
             repository.deleteById(id);
-            trainModel();  // Train the model after adding new data
+            playerAIModel.trainModel();  // Train the model after adding new data
             return true;
         }
         return false;
@@ -108,33 +106,8 @@ public class PlayerPerformanceService {
         return dto;
     }
 
-    // New trainModel() method
     public void trainModel() {
-        List<PlayerPerformance> players = repository.findAll();  // Fetch all player data
-        List<DataSet> dataSets = new ArrayList<>();
-
-        for (PlayerPerformance player : players) {
-            float[] features = new float[]{
-                    (float) player.getAverage(),
-                    (float) player.getStrikeRate(),
-                    (float) player.getBowlingAverage(),
-                    (float) player.getEconomyRate(),
-                    player.getFieldingStats()
-            };
-            float[] label = new float[]{player.getLabel()};
-            DataSet dataSet = new DataSet(Nd4j.create(features), Nd4j.create(label));
-            dataSets.add(dataSet);
-        }
-
-        ListDataSetIterator<DataSet> iterator = new ListDataSetIterator<>(dataSets);
-        playerAIModel.getModel().fit(iterator, 50);  // Train the model
-
-        try {
-            ModelSerializer.writeModel(playerAIModel.getModel(), MODEL_PATH, true);  // Save the model
-            System.out.println("Model retrained and saved to " + MODEL_PATH);
-        } catch (IOException e) {
-            System.err.println("Failed to save the model.");
-        }
+        playerAIModel.trainModel();
     }
 }
 

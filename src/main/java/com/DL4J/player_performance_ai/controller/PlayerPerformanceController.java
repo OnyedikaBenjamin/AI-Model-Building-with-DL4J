@@ -47,6 +47,8 @@ public class PlayerPerformanceController {
                 ResponseEntity.noContent().build() :
                 ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
+
+
     /**
      * Endpoint to predict if a player is suitable based on provided metrics.
      * Example JSON input:
@@ -68,5 +70,21 @@ public class PlayerPerformanceController {
                 playerMetrics.get("fieldingStats")
         };
         return service.predictPlayerSuitability(features);
+    }
+
+    /**
+     * Endpoint to trigger model training with the latest data.
+     * This will retrain the AI model using all player data in the database.
+     */
+    @PostMapping("/train")
+    public ResponseEntity<String> trainModel() {
+        try {
+            service.trainModel();  // Call the service to train the model
+            return ResponseEntity.ok("Model training started successfully.");
+        } catch (Exception e) {
+            log.error("Error during model training", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to train the model.");
+        }
     }
 }

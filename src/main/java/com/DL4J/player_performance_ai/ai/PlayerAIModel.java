@@ -27,33 +27,35 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-@Component
+@Component  // Register as a Spring bean
 @Slf4j
-@AllArgsConstructor
 public class PlayerAIModel {
 
-    private MultiLayerNetwork model;
+    private final PlayerPerformanceRepository playerPerformanceRepository;
+    private final MultiLayerNetwork model;
     private static final String MODEL_PATH = "src/main/resources/player_model.zip";
 
-    public PlayerAIModel() {
+    // Use constructor injection for the repository
+    public PlayerAIModel(PlayerPerformanceRepository repository) {
+        this.playerPerformanceRepository = repository;
+        this.model = initializeModel();  // Initialize or load the model
+    }
+
+    private MultiLayerNetwork initializeModel() {
         File modelFile = new File(MODEL_PATH);
         if (modelFile.exists()) {
             try {
-                model = ModelSerializer.restoreMultiLayerNetwork(modelFile);
                 System.out.println("Loaded existing model from " + MODEL_PATH);
+                return ModelSerializer.restoreMultiLayerNetwork(modelFile);
             } catch (IOException e) {
-                System.err.println("Failed to load the model. Creating a new model.");
-                createNewModel();
+                System.err.println("Failed to load the model. Creating a new one.");
             }
-        } else {
-            System.out.println("Model file not found. Creating a new model.");
-            createNewModel();
         }
+        return createNewModel();
     }
 
-    private void createNewModel() {
-        model = new MultiLayerNetwork(new NeuralNetConfiguration.Builder()
+    private MultiLayerNetwork createNewModel() {
+        MultiLayerNetwork newModel = new MultiLayerNetwork(new NeuralNetConfiguration.Builder()
                 .seed(42)
                 .updater(new Adam(0.001))
                 .list()
@@ -62,14 +64,55 @@ public class PlayerAIModel {
                 .layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.XENT)
                         .activation(Activation.SIGMOID).nIn(32).nOut(1).build())
                 .build());
-        model.init();
+        newModel.init();
+        saveModel(newModel);
+        return newModel;
+    }
+
+    private void saveModel(MultiLayerNetwork model) {
         try {
             ModelSerializer.writeModel(model, MODEL_PATH, true);
-            System.out.println("New model created and saved to " + MODEL_PATH);
+            System.out.println("Model saved to " + MODEL_PATH);
         } catch (IOException e) {
-            System.err.println("Failed to save the new model.");
+            System.err.println("Failed to save the model.");
         }
     }
+
+    public void trainModel() {
+        List<PlayerPerformance> players = playerPerformanceRepository.findAll();  // Fetch all player data
+        List<DataSet> dataSets = new ArrayList<>();
+
+        for (PlayerPerformance player : players) {
+            // Convert player data to a 2D array (1 row, 5 columns)
+            INDArray features = Nd4j.create(new float[][]{
+                    {
+                            (float) player.getAverage(),
+                            (float) player.getStrikeRate(),
+                            (float) player.getBowlingAverage(),
+                            (float) player.getEconomyRate(),
+                            player.getFieldingStats()
+                    }
+            });
+
+            // Convert the label to a 2D array (1 row, 1 column)
+            INDArray label = Nd4j.create(new float[][]{
+                    {player.getLabel()}
+            });
+
+            // Create a DataSet with the correctly shaped features and label
+            dataSets.add(new DataSet(features, label));
+        }
+
+        // Create a ListDataSetIterator from the DataSet list
+        ListDataSetIterator<DataSet> iterator = new ListDataSetIterator<>(dataSets);
+
+        // Train the model for 50 epochs
+        model.fit(iterator, 50);
+
+        // Save the retrained model
+        saveModel(model);
+    }
+
 
     public boolean predict(float[] features) {
         // Convert the input array to a 2D matrix (1 row, 5 columns)
@@ -81,6 +124,5 @@ public class PlayerAIModel {
         // Assuming the model outputs a probability or classification
         return output.getFloat(0) > 0.5;
     }
-
 }
 
