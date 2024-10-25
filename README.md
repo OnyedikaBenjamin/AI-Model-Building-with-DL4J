@@ -2,7 +2,6 @@
 
 This project is a **Java Spring Boot application** that uses **DL4J (Deeplearning4j)** to train a neural network for predicting if a player is **suitable or not** for the team. The application supports **CRUD operations** on player performance data stored in a **MySQL** database and retrains the AI model automatically whenever the data changes.
 
----
 
 ## **Features**
 - **CRUD Operations**: Add, update, delete, and retrieve player performance data.
