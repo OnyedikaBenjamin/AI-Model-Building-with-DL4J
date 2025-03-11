@@ -47,7 +47,7 @@ src/main/java/com/ictss
 
 ### **Step 1: Clone the Repository**
 ```bash
-git clone https://github.com/yourusername/ai-model-building-dl4j.git
+git clone https://github.com/Nuraj250/ai-model-building-dl4j.git
 cd ai-model-building-dl4j
 ```
 
