@@ -175,7 +175,7 @@ This project is licensed under the MIT License. See the **LICENSE** file for det
 
 ## **Contact**
 For questions or support, contact:
-- **Your Name**: [your.email@example.com](mailto:nurajshaminda200@gamil.com)
-- **GitHub**: [https://github.com/yourusername](https://github.com/Nuraj250)
+- **Your Name**: [nurajshaminda200@gamil.com](mailto:nurajshaminda200@gamil.com)
+- **GitHub**: [https://github.com/Nuraj250](https://github.com/Nuraj250)
 
 ---
