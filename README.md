@@ -175,5 +175,5 @@ This project is licensed under the MIT License. See the **LICENSE** file for det
 
 ## **Contact**
 For questions or support, contact:
-[nurajshaminda200@gamil.com](mailto:nurajshaminda200@gamil.com)
+[udegbunamonyedikabenjamin@gmail.com](mailto:udegbunamonyedikabenjamin@gmail.com)
 ---
